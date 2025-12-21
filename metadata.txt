@@ -1,0 +1,43 @@
+[general]
+name=CSV Geometry Import
+qgisMinimumVersion=3.0
+description=Import CSV files with various geometry formats (WKT, WKB, GeoJSON, KML, Earth Engine, TopoJSON, X-Y coordinates, etc.)
+version=1.0.0
+author=Mirjan Ali Sha
+email=mastools.help@gmail.com
+
+about=This plugin allows you to import CSV files containing geometry data in various formats that QGIS doesn't natively support. Features include:
+    - Support for WKT, WKB, EWKT, EWKB geometry formats
+    - GeoJSON and JSON geometry parsing
+    - KML geometry element parsing
+    - Earth Engine (ee.Geometry) format support
+    - TopoJSON geometry support
+    - X-Y coordinate columns (latitude/longitude)
+    - Auto-detection of geometry format
+    - Custom CRS selection (default EPSG:4326)
+    - CSV preview before import
+    - Multiple encoding and delimiter options
+
+tracker=https://github.com/Mirjan-Ali-Sha/csv-geometry-import/issues
+repository=https://github.com/Mirjan-Ali-Sha/csv-geometry-import
+homepage=https://github.com/Mirjan-Ali-Sha/csv-geometry-import
+
+category=Vector
+icon=icon.png
+experimental=False
+deprecated=False
+
+changelog=1.0.0
+    - Initial release
+    - Support for WKT, WKB, EWKT, EWKB formats
+    - GeoJSON/JSON geometry parsing
+    - KML geometry support
+    - Earth Engine geometry format
+    - TopoJSON support
+    - X-Y coordinate columns
+    - Auto-detection of geometry format
+    - CRS selection with EPSG:4326 default
+
+tags=csv,import,geometry,wkt,wkb,geojson,kml,topojson,earth engine,vector,coordinates
+
+hasProcessingProvider=no
