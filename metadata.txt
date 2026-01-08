@@ -1,0 +1,56 @@
+[general]
+name=CSV Geometry Import
+qgisMinimumVersion=3.0
+description=Import CSV files with various geometry formats (WKT, WKB, GeoJSON, KML, Earth Engine, TopoJSON, X-Y coordinates). Part of MAS Vector Processing tools.
+version=1.0.1
+author=Mirjan Ali Sha
+email=mastools.help@gmail.com
+
+about=Import CSV files containing geometry data in formats QGIS doesn't natively support.
+
+    SUPPORTED FORMATS:
+    • WKT, WKB, EWKT, EWKB
+    • GeoJSON, KML, Earth Engine
+    • TopoJSON
+    • X-Y Coordinates (lat/lon columns)
+
+    KEY FEATURES:
+    • Auto-detect geometry format and columns
+    • Preview CSV before import
+    • Skip or import invalid geometries
+    • Detailed report option for debugging:
+      - Creates _Null_Geom layer for empty geometry rows
+      - Creates _Invalid_Geom layer for parsing failures
+    • Custom CRS selection (default: EPSG:4326)
+    • Multiple encoding and delimiter options
+
+    HOW TO USE:
+    1. Menu: MAS Vector Processing → CSV Geometry Import
+    2. Or use toolbar button
+    3. Select CSV file and geometry column/format
+    4. Preview data and click Import
+
+tracker=https://github.com/Mirjan-Ali-Sha/csv-geometry-import/issues
+repository=https://github.com/Mirjan-Ali-Sha/csv-geometry-import
+homepage=https://github.com/Mirjan-Ali-Sha/csv-geometry-import
+
+category=Vector
+icon=icon.png
+experimental=False
+deprecated=False
+
+changelog=1.0.1:
+    • Added "Create detailed report" option
+    • Separate tracking of NULL vs Invalid geometries
+    • Creates _Null_Geom and _Invalid_Geom layers for debugging
+    • Improved import statistics message
+    1.0.0:
+    • Initial release
+    • Support for WKT, WKB, EWKT, EWKB, GeoJSON, KML
+    • Earth Engine and TopoJSON support
+    • X-Y coordinate column import
+    • Auto-detection of geometry format
+
+tags=csv,import,geometry,wkt,wkb,geojson,kml,topojson,earth engine,vector,coordinates
+
+hasProcessingProvider=no

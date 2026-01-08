@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# QGIS
+*.qgs~
+*.qml~
+
+# OS
+.DS_Store
+Thumbs.db

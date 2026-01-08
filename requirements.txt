@@ -1,0 +1,10 @@
+# CSV Geometry Import Plugin Dependencies
+# Most dependencies are included with QGIS Python environment
+
+# No additional dependencies required - plugin uses:
+# - PyQt5 (bundled with QGIS)
+# - qgis.core (bundled with QGIS)
+# - json (Python standard library)
+# - csv (Python standard library)
+# - re (Python standard library)
+# - xml.etree.ElementTree (Python standard library)
