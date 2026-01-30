@@ -2,7 +2,7 @@
 name=CSV Geometry Import
 qgisMinimumVersion=3.0
 description=Import CSV files with various geometry formats (WKT, WKB, GeoJSON, KML, Earth Engine, TopoJSON, X-Y coordinates). Part of MAS Vector Processing tools.
-version=1.0.1
+version=1.1.0
 author=Mirjan Ali Sha
 email=mastools.help@gmail.com
 
@@ -15,6 +15,8 @@ about=Import CSV files containing geometry data in formats QGIS doesn't natively
     • X-Y Coordinates (lat/lon columns)
 
     KEY FEATURES:
+    • Save as permanent layer (GeoPackage/Shapefile/GeoJSON) by default
+    • Option to import as temporary memory layer
     • Auto-detect geometry format and columns
     • Preview CSV before import
     • Skip or import invalid geometries
@@ -39,7 +41,12 @@ icon=icon.png
 experimental=False
 deprecated=False
 
-changelog=1.0.1:
+changelog=1.1.0:
+    • NEW: Save to file by default (GeoPackage, Shapefile, or GeoJSON)
+    • NEW: "Save as temporary layer" option for memory-only import
+    • Layers are now persistent and won't be lost when QGIS closes
+    • Auto-detect output file path from input CSV location
+    1.0.1:
     • Added "Create detailed report" option
     • Separate tracking of NULL vs Invalid geometries
     • Creates _Null_Geom and _Invalid_Geom layers for debugging

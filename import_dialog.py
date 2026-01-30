@@ -37,9 +37,9 @@ from PyQt5.QtWidgets import (
 from qgis.core import (
     QgsProject, QgsVectorLayer, QgsField, QgsFeature, QgsGeometry,
     QgsCoordinateReferenceSystem, QgsWkbTypes, QgsMessageLog, Qgis,
-    QgsCoordinateTransform
+    QgsCoordinateTransform, QgsVectorFileWriter
 )
-from qgis.gui import QgsProjectionSelectionWidget
+from qgis.gui import QgsProjectionSelectionWidget, QgsFileWidget
 
 from .geometry_parsers import GeometryParser, GeometryFormat
 
@@ -209,15 +209,33 @@ class CSVGeometryImportDialog(QDialog):
         self.layer_name_edit.setPlaceholderText('Enter layer name (default: CSV filename)')
         layer_layout.addWidget(self.layer_name_edit, 0, 1, 1, 3)
         
+        # Temporary layer checkbox
+        self.temp_layer_check = QCheckBox('Save as temporary layer (not saved to file)')
+        self.temp_layer_check.setChecked(False)
+        self.temp_layer_check.setToolTip(
+            'When checked, creates a temporary memory layer that will be lost when QGIS closes.\n'
+            'When unchecked (default), saves to a GeoPackage file for permanent storage.'
+        )
+        layer_layout.addWidget(self.temp_layer_check, 1, 0, 1, 4)
+        
+        # Output file path
+        self.output_label = QLabel('Output File:')
+        layer_layout.addWidget(self.output_label, 2, 0)
+        self.output_file_widget = QgsFileWidget()
+        self.output_file_widget.setStorageMode(QgsFileWidget.SaveFile)
+        self.output_file_widget.setFilter('GeoPackage (*.gpkg);;Shapefile (*.shp);;GeoJSON (*.geojson)')
+        self.output_file_widget.setDefaultRoot('')
+        layer_layout.addWidget(self.output_file_widget, 2, 1, 1, 3)
+        
         # Add to map checkbox
         self.add_to_map_check = QCheckBox('Add layer to map after import')
         self.add_to_map_check.setChecked(True)
-        layer_layout.addWidget(self.add_to_map_check, 1, 0, 1, 2)
+        layer_layout.addWidget(self.add_to_map_check, 3, 0, 1, 2)
         
         # Skip invalid geometries
         self.skip_invalid_check = QCheckBox('Skip rows with invalid geometries')
         self.skip_invalid_check.setChecked(True)
-        layer_layout.addWidget(self.skip_invalid_check, 1, 2, 1, 2)
+        layer_layout.addWidget(self.skip_invalid_check, 3, 2, 1, 2)
         
         # Create detailed report checkbox
         self.detailed_report_check = QCheckBox('Create detailed report (separate layers for invalid/null)')
@@ -227,7 +245,7 @@ class CSVGeometryImportDialog(QDialog):
             '• Invalid geometries: <layer>_Invalid_Geom\n'
             '• Null geometries: <layer>_Null_Geom'
         )
-        layer_layout.addWidget(self.detailed_report_check, 2, 0, 1, 4)
+        layer_layout.addWidget(self.detailed_report_check, 4, 0, 1, 4)
         
         main_layout.addWidget(layer_group)
         
@@ -281,6 +299,7 @@ class CSVGeometryImportDialog(QDialog):
         self.format_combo.currentIndexChanged.connect(self.on_format_changed)
         self.geom_column_combo.currentIndexChanged.connect(self.on_geom_column_changed)
         self.crs_selector.crsChanged.connect(self.on_crs_changed)
+        self.temp_layer_check.stateChanged.connect(self.on_temp_layer_changed)
         self.import_btn.clicked.connect(self.import_csv)
         self.cancel_btn.clicked.connect(self.reject)
     
@@ -316,6 +335,10 @@ class CSVGeometryImportDialog(QDialog):
             # Set default layer name from filename
             base_name = os.path.splitext(os.path.basename(file_path))[0]
             self.layer_name_edit.setText(base_name)
+            
+            # Set default output file path (same directory, .gpkg extension)
+            output_path = os.path.join(os.path.dirname(file_path), f'{base_name}.gpkg')
+            self.output_file_widget.setFilePath(output_path)
             
             # Load and preview CSV
             self.load_csv()
@@ -530,6 +553,12 @@ class CSVGeometryImportDialog(QDialog):
         else:
             self.crs_info_label.setText('Invalid CRS selected')
     
+    def on_temp_layer_changed(self):
+        """Handle temporary layer checkbox change - show/hide output file selector"""
+        is_temp = self.temp_layer_check.isChecked()
+        self.output_label.setVisible(not is_temp)
+        self.output_file_widget.setVisible(not is_temp)
+    
     def get_format_to_use(self) -> str:
         """Get the geometry format to use for parsing"""
         format_text = self.format_combo.currentText()
@@ -564,9 +593,21 @@ class CSVGeometryImportDialog(QDialog):
             has_header = self.has_header_check.isChecked()
             skip_invalid = self.skip_invalid_check.isChecked()
             detailed_report = self.detailed_report_check.isChecked()
+            is_temp_layer = self.temp_layer_check.isChecked()
+            output_path = self.output_file_widget.filePath()
             layer_name = self.layer_name_edit.text() or os.path.splitext(
                 os.path.basename(self.csv_path)
             )[0]
+            
+            # Validate output path for non-temp layers
+            if not is_temp_layer:
+                if not output_path:
+                    QMessageBox.warning(self, 'Warning', 'Please specify an output file path.')
+                    return
+                
+                # Ensure file extension
+                if not output_path.lower().endswith(('.gpkg', '.shp', '.geojson')):
+                    output_path += '.gpkg'
             
             # Get CRS
             crs = self.crs_selector.crs()
@@ -725,9 +766,63 @@ class CSVGeometryImportDialog(QDialog):
             
             self.progress_bar.setValue(total_rows)
             
+            # Handle layer output based on temp/file option
+            final_layer = None
+            if is_temp_layer:
+                # Use memory layer directly
+                final_layer = layer
+            else:
+                # Save to file
+                # Determine driver from file extension
+                ext = os.path.splitext(output_path)[1].lower()
+                if ext == '.shp':
+                    driver_name = 'ESRI Shapefile'
+                elif ext == '.geojson':
+                    driver_name = 'GeoJSON'
+                else:
+                    driver_name = 'GPKG'
+                
+                # Remove existing file if it exists (for overwrite)
+                if os.path.exists(output_path):
+                    try:
+                        os.remove(output_path)
+                        # For shapefiles, also remove associated files
+                        if ext == '.shp':
+                            for ext2 in ['.shx', '.dbf', '.prj', '.cpg']:
+                                assoc_file = output_path[:-4] + ext2
+                                if os.path.exists(assoc_file):
+                                    os.remove(assoc_file)
+                    except Exception as e:
+                        QgsMessageLog.logMessage(
+                            f"Warning: Could not remove existing file: {e}",
+                            'CSV Geometry Import', Qgis.Warning
+                        )
+                
+                # Write to file
+                options = QgsVectorFileWriter.SaveVectorOptions()
+                options.driverName = driver_name
+                options.fileEncoding = 'UTF-8'
+                
+                error = QgsVectorFileWriter.writeAsVectorFormatV3(
+                    layer, output_path, QgsProject.instance().transformContext(), options
+                )
+                
+                if error[0] != QgsVectorFileWriter.NoError:
+                    QMessageBox.critical(
+                        self, 'Error',
+                        f'Failed to save layer to file:\\n{error[1]}'
+                    )
+                    return
+                
+                # Load the saved file as a layer
+                final_layer = QgsVectorLayer(output_path, layer_name, 'ogr')
+                if not final_layer.isValid():
+                    QMessageBox.critical(self, 'Error', 'Failed to load saved layer.')
+                    return
+            
             # Add to map if requested
             if self.add_to_map_check.isChecked():
-                QgsProject.instance().addMapLayer(layer)
+                QgsProject.instance().addMapLayer(final_layer)
             
             # Create detailed report layers if requested
             if detailed_report:
@@ -738,7 +833,11 @@ class CSVGeometryImportDialog(QDialog):
                 )
             
             # Build success message
-            success_msg = f'Successfully imported {len(features):,} features.'
+            if is_temp_layer:
+                success_msg = f'Successfully imported {len(features):,} features as temporary layer.'
+            else:
+                success_msg = f'Successfully imported {len(features):,} features.'
+                success_msg += f'\n\nSaved to: {output_path}'
             
             null_count = len(null_geom_rows)
             invalid_count = len(invalid_geom_rows)
